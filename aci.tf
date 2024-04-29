@@ -1,7 +1,7 @@
 resource "azurerm_container_group" "default" {
   # Required
   name                = var.container_group_name
-  location            = azurerm_resource_group.container_group_rg.location
+  location            = var.location
   resource_group_name = azurerm_resource_group.container_group_rg.name
   os_type             = var.os_type
 

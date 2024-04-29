@@ -4,7 +4,7 @@ variable "resource_group_name" {
   description = "The name of the resource group"
 }
 
-variable "resource_group_location" {
+variable "location" {
   type        = string
   description = "The location of the resource group"
 }
@@ -103,12 +103,12 @@ variable "new_subnet_names" {
 
 variable "existing_subnet_name" {
   type        = string
-  description = "The names of the subnets to be created within the virtual network."
+  description = "The names of the subnet that already exists in the virtual network."
   default     = ""
 }
 
 variable "subnet_prefixes" {
   type        = list(string)
   description = "The CIDR block(s) to be used for the address space of each subnet within the virtual network."
-  default     = [""]
+  default     = null
 }

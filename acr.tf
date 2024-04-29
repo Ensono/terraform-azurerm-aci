@@ -9,15 +9,14 @@ data "azurerm_resource_group" "existing_acr_rg" {
 data "azurerm_container_registry" "existing_acr" {
   count               = var.create_acr ? 0 : 1
   name                = var.acr_name
-  location            = var.acr_location
-  resource_group_name = data.azurerm_resource_group.existing_acr_rg.name
+  resource_group_name = data.azurerm_resource_group.existing_acr_rg.0.name
 }
 
 resource "azurerm_container_registry" "new_acr" {
   count               = var.create_acr ? 1 : 0
   name                = var.acr_name
   location            = var.acr_location
-  resource_group_name = local.acr_resource_group.name
+  resource_group_name = local.acr_resource_group_name
   admin_enabled       = var.acr_admin_enabled
   sku                 = var.acr_sku
 }
