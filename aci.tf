@@ -12,7 +12,7 @@ resource "azurerm_container_group" "default" {
 
   # This Block is required! For now we are using a placeholder until an idea on design is agreed.
   container {
-    name   = "placeholder_container"
+    name   = "placeholder-container"
     image  = "nginx"
     cpu    = "0.5"
     memory = "1.5"

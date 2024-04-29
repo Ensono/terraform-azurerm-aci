@@ -40,7 +40,7 @@ variable "container_group_sku" {
 
 variable "container_group_ip_address_type" {
   type        = string
-  default     = "Public"
+  default     = "Private"
   description = "Specifies the IP address type of the container. Public, Private or None. Changing this forces a new resource to be created. If set to Private, subnet_ids also needs to be set. Defaults to Public."
 }
 

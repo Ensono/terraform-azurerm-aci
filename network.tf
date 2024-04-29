@@ -35,5 +35,15 @@ resource "azurerm_subnet" "new_subnet" {
   # this can stay referencing above as they get created or not together
   virtual_network_name = azurerm_virtual_network.new_vnet.0.name
   address_prefixes     = [local.subnet_prefixes[count.index]]
-  depends_on           = [azurerm_virtual_network.new_vnet]
+
+  delegation {
+
+    name = "container-delegation"
+    service_delegation {
+      name    = "Microsoft.ContainerInstance/containerGroups"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] # Possible values are Microsoft.Network/networkinterfaces/*, Microsoft.Network/publicIPAddresses/join/action, Microsoft.Network/publicIPAddresses/read, Microsoft.Network/virtualNetworks/read, Microsoft.Network/virtualNetworks/subnets/action, Microsoft.Network/virtualNetworks/subnets/join/action, Microsoft.Network/virtualNetworks/subnets/prepareNetworkPolicies/action, and Microsoft.Network/virtualNetworks/subnets/unprepareNetworkPolicies/action
+    }
+  }
+
+  depends_on = [azurerm_virtual_network.new_vnet]
 }
