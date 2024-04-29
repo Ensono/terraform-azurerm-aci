@@ -1,30 +1,28 @@
-resource "azurerm_resource_group" "default" {
-  name     = "danchambersacigroupRG"
-  location = "uksouth"
-}
-
 resource "azurerm_container_group" "default" {
   # Required
-  name                = "danchambersacigrouptest"               # (Required) Specifies the name of the Container Group. Changing this forces a new resource to be created.
-  location            = azurerm_resource_group.default.location # (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
-  resource_group_name = azurerm_resource_group.default.name     # (Required) The name of the resource group in which to create the Container Group. Changing this forces a new resource to be created.
-  os_type             = "Linux"                                 # (Required) The OS for the container group. Allowed values are Linux and Windows. Changing this forces a new resource to be created.
+  name                = var.container_group_name
+  location            = azurerm_resource_group.container_group_rg.location
+  resource_group_name = azurerm_resource_group.container_group_rg.name
+  os_type             = var.os_type
 
   # Optional
-  sku = "Standard" # (Optional) Specifies the sku of the Container Group. Possible values are Confidential, Dedicated and Standard. Defaults to Standard. Changing this forces a new resource to be created.
-  # exposed_port    = ""         # (Optional) Zero or more exposed_port blocks as defined below. Changing this forces a new resource to be created.
-  ip_address_type = "Public" # (Optional) Specifies the IP address type of the container. Public, Private or None. Changing this forces a new resource to be created. If set to Private, subnet_ids also needs to be set. Defaults to Public.
-  # subnet_ids      = [""]       # (Optional) The subnet resource IDs for a container group. Changing this forces a new resource to be created.
-  # priority        = ""         # (Optional) The priority of the Container Group. Possible values are Regular and Spot. Changing this forces a new resource to be created.
+  sku             = var.container_group_sku
+  ip_address_type = var.container_group_ip_address_type
+  subnet_ids      = [local.subnet_ids]
 
+  # This Block is required! For now we are using a placeholder until an idea on design is agreed.
   container {
-    name   = "test"
-    image  = "mcr.microsoft.com/azuredocs/aci-tutorial-sidecar"
+    name   = "placeholder_container"
+    image  = "nginx"
     cpu    = "0.5"
     memory = "1.5"
+    ports {
+      port     = 80
+      protocol = "TCP"
+    }
   }
 
   tags = {
-    environment = "testing"
+    environment = "Test"
   }
 }
