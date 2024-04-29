@@ -70,6 +70,7 @@ variable "acr_sku" {
 # Virtual Network Varirables
 variable "create_virtual_network" {
   type        = bool
+  default     = false
   description = "A boolean flag indicating whether to create a new virtual network. If set to true, a new virtual network will be created; if set to false, an existing virtual network will be used."
 }
 
@@ -86,24 +87,14 @@ variable "vnet_cidr" {
 
 variable "vnet_name" {
   type        = string
+  default     = null
   description = "The name of the virtual network."
 }
 
-# Subnet Variables
-# variable "subnet_names" {
-#   type        = list(string)
-#   description = "The names of the subnets to be created within the virtual network."
-# }
-
-variable "new_subnet_names" {
+variable "subnet_names" {
   type        = list(string)
-  description = "The names of the subnets to be created within the virtual network."
-}
-
-variable "existing_subnet_name" {
-  type        = string
-  description = "The names of the subnet that already exists in the virtual network."
-  default     = ""
+  default     = null
+  description = "The names of the subnets to be created within the virtual network, or exist witin the existing provided virtual network."
 }
 
 variable "subnet_prefixes" {
