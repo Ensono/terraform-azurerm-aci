@@ -38,12 +38,6 @@ variable "container_group_sku" {
   description = "Specifies the sku of the Container Group. Possible values are Confidential, Dedicated and Standard. Defaults to Standard. Changing this forces a new resource to be created."
 }
 
-variable "container_group_ip_address_type" {
-  type        = string
-  default     = "Private"
-  description = "Specifies the IP address type of the container. Public, Private or None. Changing this forces a new resource to be created. If set to Private, subnet_ids also needs to be set. Defaults to Public."
-}
-
 # Azure Container Registry (ACR) Variables
 variable "create_acr" {
   type        = bool
@@ -77,6 +71,11 @@ variable "acr_sku" {
 variable "create_virtual_network" {
   type        = bool
   description = "A boolean flag indicating whether to create a new virtual network. If set to true, a new virtual network will be created; if set to false, an existing virtual network will be used."
+}
+
+variable "integrate_with_vnet" {
+  type        = bool
+  description = "Wether or not you wish to integrate your ACI Group with a virtual network or not. If not your IP address type must be public. Private ip address type if not integrated with a virtual network."
 }
 
 variable "vnet_cidr" {

@@ -7,7 +7,7 @@ resource "azurerm_container_group" "default" {
 
   # Optional
   sku             = var.container_group_sku
-  ip_address_type = var.container_group_ip_address_type
+  ip_address_type = local.container_group_ip_address_type
   subnet_ids      = [local.subnet_ids]
 
   # This Block is required! For now we are using a placeholder until an idea on design is agreed.
