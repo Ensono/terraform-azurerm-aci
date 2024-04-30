@@ -64,13 +64,13 @@ For the most basic Azure Container Instance set up, use the below `terraform.tfv
 ```pwsh
 # Define your variables
 $TFVAR_CONTENTS = @'
-vnet_id                 = "amido-stacks-vnet-uks-dev"
-rg_name                 = "amido-stacks-rg-uks-dev"
-resource_group_location = "uksouth"
-name_company            = "amido"
-name_project            = "stacks"
-name_component          = "spa"
-name_environment        = "dev" 
+  container_group_name = "my_acg"
+  location             = "uksouth"
+  resource_group_name  = "my_rg"
+  create_acr   = true
+  acr_name     = "my_acr"
+  acr_location = "uksouth"
+  integrate_with_vnet = false 
 '@
 
 # Write the content to a file
@@ -80,13 +80,13 @@ $TFVAR_CONTENTS | Set-Content -Path "terraform.tfvars"
 ```bash
 # Define your variables
 TFVAR_CONTENTS='''
-vnet_id                 = "amido-stacks-vnet-uks-dev"
-rg_name                 = "amido-stacks-rg-uks-dev"
-resource_group_location = "uksouth"
-name_company            = "amido"
-name_project            = "stacks"
-name_component          = "spa"
-name_environment        = "dev" 
+  container_group_name = "my_acg"
+  location             = "uksouth"
+  resource_group_name  = "my_rg"
+  create_acr   = true
+  acr_name     = "my_acr"
+  acr_location = "uksouth"
+  integrate_with_vnet = false
 '''
 # Write the content to a file
 $TFVAR_CONTENTS > terraform.tfvars
@@ -132,6 +132,13 @@ Then you can initialize your container (if you wish to use containers, ensure yo
   ```
   az login
   ```
+
+### **4. Run your Terraform Commands**
+```pwsh
+terraform init # To initialize terraform backend, and pull down required modules.
+terraform plan # To check against your state file to see what is required to add to your environment.
+terraform apply # To plan and apply your configuration changes to your environment.
+```
 
 ## Requirements
 
