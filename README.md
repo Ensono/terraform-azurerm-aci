@@ -173,7 +173,7 @@ terraform apply # To plan and apply your configuration changes to your environme
 | vnet_resource_group_name | The name of the resource group where the virtual network should be created or which resource group the existing virtual network is located. | string | null |"my_vnet_rg"|`false`|`false`|
 | vnet_cidr               | The CIDR block(s) to be used for the address space of the virtual network. This specifies the range of IP addresses available for the virtual network. | list(string) | ["10.1.0.0/16"] | ["10.10.0.0/16"] |`false`|`true`|
 | subnet_names            | List of names of new OR existing subnets to integrate into the Azure Container Group. If create_virtual_network is set to true you MUST provide this. | list(string) | null | ["my_subnet1", "my_subnet2"] | `false` | `true` |
-| subnet_prefixes         | The CIDR block(s) to be used for the address space of each subnet within the virtual network. If left blank, this is calculated for you via the `locals.tf` file. | list(string) | null | ["10.10.0.0/24"] | - | - |
+| subnet_prefixes         | The CIDR block(s) to be used for the address space of each subnet within the virtual network. If left blank, this is calculated for you via the `terraform-azurerm-aci\locals.tf` file. | list(string) | null | ["10.10.0.0/24"] |`false`|`false`|
 
 ## Example `terraform.tfvars` for a simple Basic ACI Deployment (without Vnet Integration)
 ```bash
@@ -196,8 +196,20 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [azurerm_databricks_workspace.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/databricks_workspace) | resource |
-| [azurerm_lb.lb](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/lb) | resource |
+| [azurerm_container_group.default](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_group) | resource |
+| [azurerm_resource_group.existing_acr_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group.html) | data |
+| [azurerm_container_registry.existing_acr](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/container_registry) | data |
+| [azurerm_container_registry.new_acr](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_registry.html) | resource |
+| [azurerm_resource_group.existing_vnet_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group.html) | data |
+| [azurerm_virtual_network.existing_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/virtual_network) | data |
+| [azurerm_subnet.existing_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subnet) | data |
+| [azurerm_virtual_network.new_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) | resource |
+| [azurerm_subnet.new_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
+| [azurerm_client_config.spn_client](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data |
+| [azurerm_resource_group.container_group_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_role_assignment.rg_owner](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.acr_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+
 
 ## Outputs
 
