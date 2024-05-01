@@ -99,6 +99,6 @@ variable "subnet_names" {
 
 variable "subnet_prefixes" {
   type        = list(string)
-  description = "The CIDR block(s) to be used for the address space of each subnet within the virtual network."
   default     = null
+  description = "The CIDR block(s) to be used for the address space of each subnet within the virtual network."
 }
