@@ -46,7 +46,7 @@ variable "create_acr" {
 
 variable "acr_name" {
   type        = string
-  description = "The name of the Azure Container Registry (ACR)."
+  description = "The name of the new or existing Azure Container Registry (ACR)."
 }
 
 variable "acr_location" {
