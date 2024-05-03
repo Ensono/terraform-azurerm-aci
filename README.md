@@ -1,9 +1,9 @@
 <!-- BEGIN_TF_DOCS -->
-# PROJECT_NAME
+# Terraform-AzureRM-ACI
 
 DESCRIPTION:
 ---
-Bootstraps the infrastructure for {{SELECT_APP_TYPE }}. 
+Bootstraps the Azure Container Instance Infrastructure. 
 
 Will be used within the provisioned pipeline for your application depending on the options you chose.
 
@@ -11,66 +11,182 @@ Pipeline implementation for infrastructure relies on workspaces, you can pass in
 
 PREREQUISITES:
 ---
-Azure Subscripion
-  - SPN 
+**Azure Subscription**
+  - *Service Principal* (SPN)
     - Terraform will use this to perform the authentication for the API calls
-    - you will need the `client_id, subscription_id, client_secret, tenant_id`
+    - You will need the `client_id, subscription_id, client_secret, tenant_id`
+    - Bash Example:
+      ```bash 
+      export ARM_CLIENT_ID=xxxx \
+             ARM_CLIENT_SECRET=yyyyy \
+             ARM_SUBSCRIPTION_ID=yyyyy \
+             ARM_TENANT_ID=yyyyy
+      ```
+    - PowerShell Example:
+      ```pwsh 
+      $ARM_CLIENT_ID=xxxx
+      $ARM_CLIENT_SECRET=yyyyy
+      $ARM_SUBSCRIPTION_ID=yyyyy
+      $ARM_TENANT_ID=yyyyy
+      ```
 
-Terraform backend
-  - resource group (can be manually created for the terraform remote state)
-  - Blob storage container for the remote state management
+**Terraform Backend**
+  - Resource group (can be manually created for the terraform remote state)
+  - Blob storage container within a storage account for the remote state management
+  - Ensure you have set up your `backend.tf` file within your root directory (where you are using this module) unless you wish your terraform state to remain local.
+    - **IMPORTANT: Ensure you are putting this in your .gitignore to ensure you are not passing sensitive values into your repositories!!**
+  - Example TF Backend File:
+    ```
+    terraform {
+      backend "azurerm" {
+        resource_group_name  = "ResourceGroupName"  # Name of the resource group that your storage account resides in.
+        storage_account_name = "StorageAccountName" # Name of the storage account for your terraform state file.
+        container_name       = "tfstate"            # What your container name within the storage account is called.
+        key                  = "terraform.tfstate"  # What your state output will be named.
+      }
+    }
+    ```
 
 
 USAGE:
 ---
 
 To activate the terraform backend for running locally we need to initialise the SPN with env vars to ensure you are running the same way as the pipeline that will ultimately be running any incremental changes.
+### **1. Create your `terraform.tfvars` file**
 
-```bash
-docker run -it --rm -v $(pwd):/opt/tf-lib amidostacks/ci-tf:latest /bin/bash
+To get up and running locally you will want to create  a `terraform.tfvars` file. 
+
+**Important: See the below instructions for more details on the content of your terraform.tfvars file and what the impact when running the module**
+
+For the most basic Azure Container Instance set up, use the below `terraform.tfvars` set up. This includes minimal features and no virtual network integration:
+
+- **PowerShell Example:**
+```pwsh
+# Define your variables
+$TFVAR_CONTENTS = @'
+  container_group_name = "my_acg"
+  location             = "uksouth"
+  resource_group_name  = "my_rg"
+  create_acr   = true
+  acr_name     = "my_acr"
+  acr_location = "uksouth"
+  integrate_with_vnet = false 
+'@
+
+# Write the content to a file
+$TFVAR_CONTENTS | Set-Content -Path "terraform.tfvars"
 ```
-
-```bash 
-export ARM_CLIENT_ID=xxxx \
-ARM_CLIENT_SECRET=yyyyy \
-ARM_SUBSCRIPTION_ID=yyyyy \
-ARM_TENANT_ID=yyyyy
-```
-
-alternatively you can run `az login` 
-
-To get up and running locally you will want to create  a `terraform.tfvars` file 
+- **Bash Example:**
 ```bash
+# Define your variables
 TFVAR_CONTENTS='''
-vnet_id                 = "amido-stacks-vnet-uks-dev"
-rg_name                 = "amido-stacks-rg-uks-dev"
-resource_group_location = "uksouth"
-name_company            = "amido"
-name_project            = "stacks"
-name_component          = "spa"
-name_environment        = "dev" 
+  container_group_name = "my_acg"
+  location             = "uksouth"
+  resource_group_name  = "my_rg"
+  create_acr   = true
+  acr_name     = "my_acr"
+  acr_location = "uksouth"
+  integrate_with_vnet = false
 '''
+# Write the content to a file
 $TFVAR_CONTENTS > terraform.tfvars
 ```
 
-```
-terraform workspace select dev || terraform workspace new dev
+### **2. Initialize your container**
+
+- Ensure you are running the below terminal commands in the directory that contain the files you wish to emulate within the container, e.g. `~\stacks-projects\dchambers-web` to import all files into my container:
+    
+
+| Local Files in Repo    | Files Copied to Container |
+|------------------------|---------------------------|
+|![alt text](image-1.png)|![alt text](image-2.png)   |
+
+Then you can initialize your container (if you wish to use containers, ensure you have docker desktop)
+  - **Bash Example**
+    ```docker
+    docker run -it --rm -v $(pwd):/opt/tf-lib amidostacks/ci-tf:latest /bin/bash
+    ```
+  - **PowerShell Example**
+    ```docker
+    docker run -it --rm -v ${PWD}:/app amidostacks/runner-pwsh:0.4.60-stable pwsh
+    ```
+
+### **3. Export your authorization Credentials OR Login via Az CLI**
+- **Bash Example:**
+  ```bash 
+  export ARM_CLIENT_ID=xxxx \
+         ARM_CLIENT_SECRET=yyyyy \
+         ARM_SUBSCRIPTION_ID=yyyyy \
+         ARM_TENANT_ID=yyyyy
+  ```
+
+- **PowerShell Example:**
+  ```pwsh 
+  $ARM_CLIENT_ID=xxxx
+  $ARM_CLIENT_SECRET=yyyyy
+  $ARM_SUBSCRIPTION_ID=yyyyy
+  $ARM_TENANT_ID=yyyyy
+  ```
+
+- **Az CLI Example:**
+  ```
+  az login
+  ```
+
+### **4. Run your Terraform Commands**
+```pwsh
+terraform init # To initialize terraform backend, and pull down required modules.
+terraform plan # To check against your state file to see what is required to add to your environment.
+terraform apply # To plan and apply your configuration changes to your environment.
 ```
 
-terraform init -backend-config=./backend.local.tfvars
 ## Requirements
 
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 3.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 3.0 |
-| <a name="provider_databricks"></a> [databricks](#provider\_databricks) | n/a |
+
+## Inputs (For Env Variables `TF_VAR_*` or `terraform.tfvars`)
+
+| Name                    | Description                                                                 | Type           | Default | Example | Passing Required for Basic Deployment? | Passing Required for VNET Integration Deployment? |
+|-------------------------|-----------------------------------------------------------------------------|----------------|---------|---------|---------------------------|--------------------------------------|
+| container_group_name    | Name of the Azure Container Group                                           | string         | -       | "my_container_group" | `true`  | `true`                               |
+| location                | Location of the Azure Resource Group                                        | string         | -       | "UKSouth" | `true`  | `true`                               |
+| resource_group_name     | Name of the Azure Resource Group you wish to create.                        | string         | -       | "my_rg"   | `true`  | `true`                               |
+| os_type                 | The OS for the container group. Allowed values are Linux and Windows. Changing this forces a new resource to be created. | string | Linux |"Windows"|`false`|`false`|
+| container_group_sku     | Specifies the SKU of the Container Group. Possible values are Confidential, Dedicated, and Standard. Defaults to Standard. Changing this forces a new resource to be created. | string | Standard |"Confidential"|`false`|`false`|
+| acr_admin_enabled       | A boolean flag indicating whether admin user should be enabled for the Azure Container Registry (ACR). | bool | true |true|`false`|`false`|
+| acr_sku                 | The SKU (pricing tier) of the Azure Container Registry (ACR).               | string         | Standard |"Premium"|`false`|`false`|
+| acr_resource_group_name | The name of the resource group where the Azure Container Registry (ACR) should be created or where the existing ACR is located. | string | null |"my_acr_rg"|`false`|`false`|
+| acr_name                | Name of the Azure Container Registry you wish to create or to reference an existing ACR.| string | - | "my_acr" | `true` | `true` |
+| acr_location            | Location of the Azure Container Registry                                    | string         | -       | "UKSouth" | `true`  | `true`                               |
+| create_acr              | Whether to create Azure Container Registry                                  | bool           | -       | true      | `true`  | `true`                               |
+| create_virtual_network | A boolean flag indicating whether to create a new virtual network. If set to true, a new virtual network will be created; if set to false, an existing virtual network will be used. | bool | false | false | `false` | `true` |
+| integrate_with_vnet     | Whether or not you wish to integrate your ACI Group with a virtual network or not. If not, your IP address type must be public. Private IP address type if not integrated with a virtual network. | bool | - | false | `true` | `true` |
+| vnet_name               | Name of the new OR existing Virtual Network to integrate into the Azure Container Group. If create_virtual_network is set to true you MUST provide this. | string | null | "my_vnet" | `false` | `true` |
+| vnet_resource_group_name | The name of the resource group where the virtual network should be created or which resource group the existing virtual network is located. | string | null |"my_vnet_rg"|`false`|`false`|
+| vnet_cidr               | The CIDR block(s) to be used for the address space of the virtual network. This specifies the range of IP addresses available for the virtual network. | list(string) | ["10.1.0.0/16"] | ["10.10.0.0/16"] |`false`|`true`|
+| subnet_names            | List of names of new OR existing subnets to integrate into the Azure Container Group. If create_virtual_network is set to true you MUST provide this. | list(string) | null | ["my_subnet1", "my_subnet2"] | `false` | `true` |
+| subnet_prefixes         | The CIDR block(s) to be used for the address space of each subnet within the virtual network. If left blank, this is calculated for you via the `terraform-azurerm-aci\locals.tf` file. | list(string) | null | ["10.10.0.0/24"] |`false`|`false`|
+
+## Example `terraform.tfvars` for a simple Basic ACI Deployment (without Vnet Integration)
+```bash
+container_group_name = "my_acg"
+location             = "uksouth"
+resource_group_name  = "my_rg"
+
+create_acr   = true
+acr_name     = "my_acr"
+acr_location = "uksouth"
+
+integrate_with_vnet = false
+```
 
 ## Modules
 
@@ -80,78 +196,20 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [azurerm_databricks_workspace.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/databricks_workspace) | resource |
-| [azurerm_lb.lb](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/lb) | resource |
-| [azurerm_lb_backend_address_pool.lb_be_pool](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/lb_backend_address_pool) | resource |
-| [azurerm_lb_outbound_rule.lb_rule](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/lb_outbound_rule) | resource |
-| [azurerm_monitor_diagnostic_setting.databricks_log_analytics](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) | resource |
-| [azurerm_nat_gateway.nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway) | resource |
-| [azurerm_nat_gateway_public_ip_association.nat_ip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway_public_ip_association) | resource |
-| [azurerm_network_security_group.nsg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group) | resource |
-| [azurerm_private_dns_cname_record.cname](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_cname_record) | resource |
-| [azurerm_private_dns_zone.dns](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone) | resource |
-| [azurerm_private_dns_zone_virtual_network_link.db_dns_vnet_link](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone_virtual_network_link) | resource |
-| [azurerm_private_endpoint.databricks](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
-| [azurerm_public_ip.pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
-| [azurerm_subnet.pe_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
-| [azurerm_subnet.private_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
-| [azurerm_subnet.public_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
-| [azurerm_subnet_nat_gateway_association.private_subnet_nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_nat_gateway_association) | resource |
-| [azurerm_subnet_nat_gateway_association.public_subnet_nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_nat_gateway_association) | resource |
-| [azurerm_subnet_network_security_group_association.private](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_network_security_group_association) | resource |
-| [azurerm_subnet_network_security_group_association.public](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_network_security_group_association) | resource |
-| [databricks_group.project_users](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/group) | resource |
-| [databricks_group_member.project_users](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/group_member) | resource |
-| [databricks_user.rbac_users](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/user) | resource |
-| [databricks_workspace_conf.this](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/workspace_conf) | resource |
-| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
-| [azurerm_monitor_diagnostic_categories.adb_log_analytics_categories](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/monitor_diagnostic_categories) | data source |
-| [azurerm_resource_group.vnet_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
-| [azurerm_subnet.pe_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subnet) | data source |
-| [azurerm_subnet.private_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subnet) | data source |
-| [azurerm_subnet.public_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subnet) | data source |
-| [azurerm_virtual_network.vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/virtual_network) | data source |
-| [databricks_current_user.db](https://registry.terraform.io/providers/databricks/databricks/latest/docs/data-sources/current_user) | data source |
+| [azurerm_container_group.default](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_group) | resource |
+| [azurerm_resource_group.existing_acr_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group.html) | data |
+| [azurerm_container_registry.existing_acr](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/container_registry) | data |
+| [azurerm_container_registry.new_acr](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_registry.html) | resource |
+| [azurerm_resource_group.existing_vnet_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group.html) | data |
+| [azurerm_virtual_network.existing_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/virtual_network) | data |
+| [azurerm_subnet.existing_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subnet) | data |
+| [azurerm_virtual_network.new_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) | resource |
+| [azurerm_subnet.new_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
+| [azurerm_client_config.spn_client](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data |
+| [azurerm_resource_group.container_group_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_role_assignment.rg_owner](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.acr_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 
-## Inputs
-
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_add_rbac_users"></a> [add\_rbac\_users](#input\_add\_rbac\_users) | If set to true, the module will create databricks users and  group named 'project\_users' with the specified users as members, and grant workspace and SQL access to this group. Default is false. | `bool` | `true` | no |
-| <a name="input_create_lb"></a> [create\_lb](#input\_create\_lb) | Deploy Databricks with a Load Balancer. | `bool` | `false` | no |
-| <a name="input_create_nat"></a> [create\_nat](#input\_create\_nat) | Deploy Databricks with a NAT Gateway. | `bool` | `false` | no |
-| <a name="input_create_pe_subnet"></a> [create\_pe\_subnet](#input\_create\_pe\_subnet) | Set to true if you need the module to create the private endpoint subnet. | `bool` | `false` | no |
-| <a name="input_create_pip"></a> [create\_pip](#input\_create\_pip) | Create Databricks with a Public IP. | `bool` | `false` | no |
-| <a name="input_create_subnets"></a> [create\_subnets](#input\_create\_subnets) | Set to true if you need the module to create the subnets for you. | `bool` | `false` | no |
-| <a name="input_data_platform_log_analytics_workspace_id"></a> [data\_platform\_log\_analytics\_workspace\_id](#input\_data\_platform\_log\_analytics\_workspace\_id) | The Log Analytics Workspace used for the whole Data Platform. | `string` | `null` | no |
-| <a name="input_databricks_group_display_name"></a> [databricks\_group\_display\_name](#input\_databricks\_group\_display\_name) | If 'add\_rbac\_users' set to true then specifies databricks group display name | `string` | `"project_users"` | no |
-| <a name="input_databricks_sku"></a> [databricks\_sku](#input\_databricks\_sku) | The SKU to use for the databricks instance | `string` | `"premium"` | no |
-| <a name="input_databricksws_diagnostic_setting_name"></a> [databricksws\_diagnostic\_setting\_name](#input\_databricksws\_diagnostic\_setting\_name) | The Databricks workspace diagnostic setting name. | `string` | `"Databricks to Log Analytics"` | no |
-| <a name="input_dns_record_ttl"></a> [dns\_record\_ttl](#input\_dns\_record\_ttl) | TTL for DNS Record. | `number` | `300` | no |
-| <a name="input_enable_databricksws_diagnostic"></a> [enable\_databricksws\_diagnostic](#input\_enable\_databricksws\_diagnostic) | Whether to enable diagnostic settings for the Azure Databricks workspace | `bool` | `false` | no |
-| <a name="input_enable_enableDbfsFileBrowser"></a> [enable\_enableDbfsFileBrowser](#input\_enable\_enableDbfsFileBrowser) | Whether to enable Dbfs File browser for the Azure Databricks workspace | `bool` | `false` | no |
-| <a name="input_enable_private_network"></a> [enable\_private\_network](#input\_enable\_private\_network) | Enable Secure Data Platform. | `bool` | `false` | no |
-| <a name="input_enable_sql_access"></a> [enable\_sql\_access](#input\_enable\_sql\_access) | Whether to enable sql access for the databricks group | `bool` | `true` | no |
-| <a name="input_enable_workspace_access"></a> [enable\_workspace\_access](#input\_enable\_workspace\_access) | Whether to enable workspace access for the databricks group | `bool` | `true` | no |
-| <a name="input_managed_vnet"></a> [managed\_vnet](#input\_managed\_vnet) | Used to determine if Databricks is created in a managed vnet configuration. | `bool` | `false` | no |
-| <a name="input_nat_idle_timeout"></a> [nat\_idle\_timeout](#input\_nat\_idle\_timeout) | Idle timeout period in minutes. | `number` | `10` | no |
-| <a name="input_network_security_group_rules_required"></a> [network\_security\_group\_rules\_required](#input\_network\_security\_group\_rules\_required) | Does the data plane (clusters) to control plane communication happen over private link endpoint only or publicly? Possible values AllRules, NoAzureDatabricksRules or NoAzureServiceRules. | `string` | `"NoAzureDatabricksRules"` | no |
-| <a name="input_pe_subnet_name"></a> [pe\_subnet\_name](#input\_pe\_subnet\_name) | Name of the Subnet used to provision Private Endpoints into. | `string` | `""` | no |
-| <a name="input_pe_subnet_prefix"></a> [pe\_subnet\_prefix](#input\_pe\_subnet\_prefix) | IP Address Space fo the Private Endpoints Databricks Subnet. | `list(string)` | `[]` | no |
-| <a name="input_private_subnet_name"></a> [private\_subnet\_name](#input\_private\_subnet\_name) | Name of the Private Databricks Subnet. | `string` | `""` | no |
-| <a name="input_private_subnet_prefix"></a> [private\_subnet\_prefix](#input\_private\_subnet\_prefix) | IP Address Space fo the Private Databricks Subnet. | `list(string)` | `[]` | no |
-| <a name="input_public_network_access_enabled"></a> [public\_network\_access\_enabled](#input\_public\_network\_access\_enabled) | Enables or Disabled Public Access to Databricks Workspace. | `bool` | `true` | no |
-| <a name="input_public_subnet_name"></a> [public\_subnet\_name](#input\_public\_subnet\_name) | Name of the Public Databricks Subnet. | `string` | `""` | no |
-| <a name="input_public_subnet_prefix"></a> [public\_subnet\_prefix](#input\_public\_subnet\_prefix) | IP Address Space fo the Public Databricks Subnet. | `list(string)` | `[]` | no |
-| <a name="input_rbac_databricks_users"></a> [rbac\_databricks\_users](#input\_rbac\_databricks\_users) | If 'add\_rbac\_users' set to true then specifies RBAC Databricks users | <pre>map(object({<br>    display_name = string<br>    user_name    = string<br>    active       = bool<br>  }))</pre> | `null` | no |
-| <a name="input_resource_group_location"></a> [resource\_group\_location](#input\_resource\_group\_location) | Location of Resource group | `string` | `"uksouth"` | no |
-| <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of resource group | `string` | n/a | yes |
-| <a name="input_resource_namer"></a> [resource\_namer](#input\_resource\_namer) | User defined naming convention applied to all resources created as part of this module | `string` | n/a | yes |
-| <a name="input_resource_tags"></a> [resource\_tags](#input\_resource\_tags) | Map of tags to be applied to all resources created as part of this module | `map(string)` | `{}` | no |
-| <a name="input_service_endpoints"></a> [service\_endpoints](#input\_service\_endpoints) | List of Service Endpoints Enabled on the Subnet. | `list(string)` | <pre>[<br>  "Microsoft.AzureActiveDirectory",<br>  "Microsoft.KeyVault",<br>  "Microsoft.ServiceBus",<br>  "Microsoft.Sql",<br>  "Microsoft.Storage"<br>]</pre> | no |
-| <a name="input_vnet_address_prefix"></a> [vnet\_address\_prefix](#input\_vnet\_address\_prefix) | Address Prefix of the VNET. | `string` | `""` | no |
-| <a name="input_vnet_name"></a> [vnet\_name](#input\_vnet\_name) | Name of the VNET inwhich the Databricks Workspace will be provisioned. | `string` | `""` | no |
-| <a name="input_vnet_resource_group"></a> [vnet\_resource\_group](#input\_vnet\_resource\_group) | The Resource Group which the VNET is provisioned. | `string` | `""` | no |
 
 ## Outputs
 
